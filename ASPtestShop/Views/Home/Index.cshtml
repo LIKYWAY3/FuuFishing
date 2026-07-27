@@ -20,8 +20,15 @@
 <!-- End Hero Section -->
 <!-- Start Product Section -->
 <div class="product-section">
-	<div class="container">
-		<div class="row" id ="product-list">
+	<div class="container"> 
+		<div class="row mb-4">
+			<div class="col-lg-7 mx-auto text-center">
+				<h2 class="section-title">SẢN PHẨM NỔI BẬT</h2>
+			</div>
+		</div>
+		<div class="product-marquee-wrapper">
+			<div class="product-marquee-track" id="product-list">
+			</div>
 		</div>
 	</div>
 </div>
@@ -128,7 +135,7 @@
 					<div class="pt-3">
 						<h3>Carbon Master Rod</h3>
 						<p>Siêu phẩm cần câu Carbon High-Modulus thế hệ mới. Trọng lượng siêu nhẹ, độ nảy hoàn hảo cùng khả năng chịu tải phi thường, giúp bạn tự tin dẫn dắt những trận chiến đỉnh cao.</p>
-						<p><a href="#">Xem Thêm</a></p>
+						<p><a href="/Shop?categoryId=1#products">Xem Thêm</a></p>
 					</div>
 				</div>
 			</div>
@@ -141,7 +148,7 @@
 					<div class="pt-3">
 						<h3>Apex Spinning Reel</h3>
 						<p>Sở hữu hệ thống truyền động chính xác và vòng bi chống ăn mòn tuyệt đối. Mang lại trải nghiệm thu dây mượt mà, kiểm soát lực hãm tối ưu trước những cú ghì oanh liệt.</p>
-						<p><a href="#">Xem Thêm</a></p>
+						<p><a href="/Shop?categoryId=4#products">Xem Thêm</a></p>
 					</div>
 				</div>
 			</div>
@@ -154,7 +161,7 @@
 					<div class="pt-3">
 						<h3>Phantom PE Line</h3>
 						<p>Dây câu siêu mịn với công nghệ bện 8 lõi cao cấp, tối ưu hóa khoảng cách ném mồi. Khả năng chống mài mòn vượt trội, tàng hình trong nước và cắt nước cực nhanh.</p>
-						<p><a href="#">Xem Thêm</a></p>
+						<p><a href="/Shop?categoryId=3#products">Xem Thêm</a></p>
 					</div>
 				</div>
 			</div>
@@ -335,97 +342,56 @@
 			}
 		}
 
+		//product chạy chạy
 		function renderFeaturedProducts(products) {
-			const productList =
-				document.getElementById("product-list");
+			const productList = document.getElementById("product-list");
 
 			productList.innerHTML = "";
 
 			if (!products || products.length === 0) {
 				productList.innerHTML = `
-					<div class="col-12 text-center py-5">
-						<p class="text-muted mb-0">
-							Hiện chưa có sản phẩm nổi bật.
-						</p>
+					<div class="col-12 text-center py-5" style="width:100vw;">
+						<p class="text-muted mb-0">Hiện chưa có sản phẩm nổi bật.</p>
 					</div>
 				`;
-
 				return;
 			}
 
+			let htmlContent = "";
+
 			products.forEach(product => {
-				const productId = Number(
-					product.productId ?? product.id
-				);
+				const productId = Number(product.productId ?? product.id);
+				if (!Number.isInteger(productId) || productId <= 0) return;
 
-				if (!Number.isInteger(productId)
-					|| productId <= 0) {
-					return;
-				}
+				const productName = product.productName ?? product.name ?? "Sản phẩm";
+				const price = Number(product.price ?? product.salePrice ?? 0);
+				const originalPrice = Number(product.originalPrice ?? product.price ?? 0);
+				const imageUrl = product.thumbnailUrl ?? product.imageUrl ?? "/images/no-image.png";
 
-				const productName =
-					product.productName
-					?? product.name
-					?? "Sản phẩm";
+				const originalPriceHtml = originalPrice > price
+					? `<div class="text-muted text-decoration-line-through small">${formatCurrency(originalPrice)}</div>`
+					: `<div style="height: 26px;"></div>`;
 
-				const price = Number(
-					product.price
-					?? product.salePrice
-					?? 0
-				);
-
-				const originalPrice = Number(
-					product.originalPrice
-					?? product.price
-					?? 0
-				);
-
-				const imageUrl =
-					product.thumbnailUrl
-					?? product.imageUrl
-					?? "/images/no-image.png";
-
-				const originalPriceHtml =
-					originalPrice > price
-						? `
-							<div class="text-muted
-										text-decoration-line-through
-										small">
-								${formatCurrency(originalPrice)}
-							</div>
-						  `
-						: "";
-
-				productList.innerHTML += `
-					<div class="col-12 col-md-4 col-lg-3 mb-5">
-						<a class="product-item"
-						   href="/Shop/Detail/${productId}">
-
+				htmlContent += `
+					<div class="marquee-item">
+						<a class="product-item" href="/Product/Detail/${productId}">
 							<img src="${escapeAttribute(imageUrl)}"
 								 alt="${escapeAttribute(productName)}"
 								 class="img-fluid product-thumbnail"
-								 onerror="this.onerror=null;
-										  this.src='/images/no-image.png';">
+								 onerror="this.onerror=null; this.src='/images/no-image.png';">
 
-							<h3 class="product-title">
-								${escapeHtml(productName)}
-							</h3>
-
-							<strong class="product-price">
-								${formatCurrency(price)}
-							</strong>
-
+							<h3 class="product-title">${escapeHtml(productName)}</h3>
+							<strong class="product-price">${formatCurrency(price)}</strong>
 							${originalPriceHtml}
 
 							<span class="icon-cross">
-								<img src="/images/cross.svg"
-									 alt="Xem sản phẩm"
-									 class="img-fluid">
+								<img src="/images/cross.svg" alt="Xem sản phẩm" class="img-fluid">
 							</span>
 						</a>
 					</div>
 				`;
 			});
+			productList.innerHTML = htmlContent + htmlContent;
 		}
 
 		function formatCurrency(value) {
