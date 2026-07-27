@@ -14,7 +14,7 @@
 
 	/* Khung dropdown */
 	.shop-category-dropdown-menu.dropdown-menu {
-		background-color: #3b5d50 !important;
+		background-color: #121617 !important;
 		border: 1px solid #f9bf29 !important;
 		min-width: 190px !important;
 		padding: 8px 0 !important;
@@ -46,6 +46,33 @@
 	.custom-navbar-nav .nav-item.dropdown:hover > .nav-link {
 		color: #f9bf29 !important;
 	}
+	.custom-navbar-cta .dropdown-menu {
+		padding: 0 !important;
+		margin: 0 !important;
+		overflow: hidden !important;
+	}
+
+		.custom-navbar-cta .dropdown-menu li {
+			margin: 0 !important;
+			padding: 0 !important;
+		}
+
+	.custom-navbar-cta .dropdown-item {
+		padding: 12px 20px !important; 
+		margin: 0 !important;
+		border-radius: 0 !important; 
+	}
+
+	.custom-navbar-nav .nav-item.active .dropdown-menu a::before,
+	.custom-navbar-nav .nav-item.active .dropdown-menu a::after {
+		display: none !important;
+	}
+
+	.shop-category-dropdown-menu .dropdown-item.active {
+		color: #000000 !important;
+		background-color: #f9bf29 !important;
+		font-weight: bold !important;
+	}
 </style>
 
 <nav class="custom-navbar navbar navbar-expand-md navbar-dark bg-dark" aria-label="Umi navigation bar">
@@ -59,7 +86,7 @@
 
 		<div class="collapse navbar-collapse" id="navbarsFurni">
 			<ul class="custom-navbar-nav navbar-nav ms-auto mb-2 mb-md-0">
-				<li class="nav-item active">
+				<li class="nav-item">
 					<a class="nav-link" asp-controller="Home" asp-action="Index">Home</a>
 				</li>
 
@@ -205,10 +232,68 @@
 </nav>
 
 <script>
-	document.addEventListener("DOMContentLoaded", function () {
-    loadNavbarCategories();
-});
+	document.addEventListener("DOMContentLoaded", async function () {
+		await loadNavbarCategories();
+		setActiveNav();
+	});
+	//thêm hàm setActiveNav
+	function setActiveNav() {
+		const currentUrl = new URL(window.location.href);
+		const currentPath = currentUrl.pathname.toLowerCase();
+		const currentCatId = currentUrl.searchParams.get('categoryId');
 		
+		const navItems = document.querySelectorAll('.custom-navbar-nav .nav-item');
+		const dropdownItems = document.querySelectorAll('.custom-navbar-nav .dropdown-item');
+		
+		// 1. Dọn dẹp sạch sẽ màu vàng cũ ở cả menu cha và menu con
+		navItems.forEach(item => item.classList.remove('active'));
+		dropdownItems.forEach(item => item.classList.remove('active'));
+
+		let isMatched = false;
+
+		if (currentPath === '/' || currentPath === '/home') {
+			navItems[0].classList.add('active');
+			isMatched = true;
+		} 
+		else if (currentPath === '/shop') {
+			if (!currentCatId) {
+				const topLinks = document.querySelectorAll('.custom-navbar-nav > li > a.nav-link');
+				topLinks.forEach(link => {
+					if (link.textContent.trim().toLowerCase() === 'shop') {
+						link.closest('.nav-item').classList.add('active');
+						isMatched = true;
+					}
+				});
+			} 
+			else {
+				const allLinks = document.querySelectorAll('.custom-navbar-nav a');
+				for (const link of allLinks) {
+					const linkHref = link.getAttribute('href');
+					if (linkHref) {
+						try {
+							const parsedLink = new URL(linkHref, window.location.origin);
+							if (parsedLink.pathname.toLowerCase() === '/shop' && 
+								parsedLink.searchParams.get('categoryId') === currentCatId) {
+								
+								link.closest('.nav-item').classList.add('active');
+								
+								if (link.classList.contains('dropdown-item')) {
+									link.classList.add('active');
+								}
+								
+								isMatched = true;
+							}
+						} catch(e) {}
+					}
+				}
+			}
+		}
+
+		if (!isMatched) {
+			navItems[0].classList.add('active');
+		}
+	}
+	
 	async function loadNavbarCategories() {
 		try {
 			const response = await fetch("/api/categories");
