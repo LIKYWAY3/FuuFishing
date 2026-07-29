@@ -21,12 +21,7 @@ namespace ASPtestShop.Data
         public DbSet<Coupon> Coupons { get; set; }
         public DbSet<UserAddress> UserAddresses { get; set; }
 
-        // ==========================================
-        // DBSETS: CHAT SYSTEM (Tạm thời comment do chưa tạo Entity)
-        // ==========================================
-        // public DbSet<Conversation> Conversations { get; set; }
-        // public DbSet<ChatMessage> ChatMessages { get; set; }
-        // public DbSet<ChatAttachment> ChatAttachments { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -55,6 +50,8 @@ namespace ASPtestShop.Data
             builder.Entity<Payment>()
                 .HasIndex(p => p.OrderId)
                 .IsUnique();
+
+    
 
             // ==========================================
             // RELATIONSHIPS: E-COMMERCE SYSTEM
@@ -151,6 +148,8 @@ namespace ASPtestShop.Data
                 .WithMany()
                 .HasForeignKey(r => r.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
-        }
+
+
+        
     }
-}
+    }}
