@@ -1,26 +1,36 @@
-﻿using ASPtestShop.Models.DTO.Payment;
-
+using ASPtestShop.Models.DTO.Payment;
 using ASPtestShop.Services.PaymentProviders;
+using Microsoft.Extensions.Configuration;
 
 namespace ASPtestShop.Services.Implementations.PaymentProviders
 {
-    // Khung MoMo Provider
-    // Hiện tại chưa gọi API thật
-    // Sau này có PartnerCode, AccessKey, SecretKey, ReturnUrl, NotifyUrl thì gắn vào đây
     public class MomoPaymentProvider : IPaymentProvider
     {
+        private readonly IConfiguration _configuration;
+
+        public MomoPaymentProvider(IConfiguration configuration)
+        {
+            _configuration = configuration;
+        }
+
         public string PaymentMethod => "MOMO";
 
         public Task<CreatePaymentResultDto> CreatePaymentAsync(CreatePaymentRequestDto request)
         {
+            var partnerCode = _configuration["Payment:MoMo:PartnerCode"];
+            var transactionCode = $"MOMO_{request.OrderCode}_{DateTime.UtcNow:yyyyMMddHHmmss}";
+
+            // URL chuyển hướng người dùng đến trang thanh toán MoMo (hỗ trợ Sandbox/Mô phỏng)
+            var paymentUrl = $"/payment/momo?orderCode={request.OrderCode}&amount={request.Amount:F0}&transId={transactionCode}";
+
             var result = new CreatePaymentResultDto
             {
-                IsSuccess = false,
-                Message = "MoMo chưa được cấu hình. Hiện tại chỉ hỗ trợ COD.",
+                IsSuccess = true,
+                Message = "Khởi tạo thanh toán MoMo thành công.",
                 PaymentMethod = "MOMO",
                 PaymentStatus = "Pending",
-                PaymentUrl = null,
-                TransactionCode = null,
+                PaymentUrl = paymentUrl,
+                TransactionCode = transactionCode,
                 RequiresRedirect = true
             };
 

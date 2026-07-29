@@ -1,4 +1,4 @@
-﻿@{
+@{
     Layout = "_LayoutCustomer";
 }
 
@@ -84,10 +84,13 @@
 
                     <div class="col-12 col-xl-4">
                         <button type="button"
+                                id="btn-apply-coupon"
                                 class="btn btn-black btn-block py-3">
                             Áp dụng phiếu
                         </button>
                     </div>
+
+                    <div class="col-12 mt-2" id="coupon-message"></div>
                 </div>
             </div>
 
@@ -156,11 +159,15 @@
 @section Scripts {
     <script>
         const selectedCartItemsStorageKey = "selectedCartItemIds";
+        const appliedCouponStorageKey = "appliedCouponCode";
 
         document.addEventListener("DOMContentLoaded", function() {
             sessionStorage.removeItem(selectedCartItemsStorageKey);
+            sessionStorage.removeItem(appliedCouponStorageKey);
             setCheckoutButtonState(false);
             getCartData();
+
+            document.getElementById("btn-apply-coupon")?.addEventListener("click", applyCouponHandler);
         });
 
         function getSelectedCartItemIds() {
@@ -692,6 +699,78 @@
                 .replaceAll(">", "&gt;")
                 .replaceAll('"', "&quot;")
                 .replaceAll("'", "&#039;");
+        }
+
+        async function applyCouponHandler() {
+            const couponInput = document.getElementById("coupon");
+            const couponCode = couponInput?.value?.trim() || "";
+            const msgBox = document.getElementById("coupon-message");
+            const discountElement = document.getElementById("cart-discount");
+
+            if (!couponCode) {
+                if (msgBox) msgBox.innerHTML = `<div class="alert alert-warning py-2 mb-0 small">Vui lòng nhập mã giảm giá.</div>`;
+                return;
+            }
+
+            // Tính tổng tiền các món được tích chọn
+            let subtotal = 0;
+            document.querySelectorAll(".cart-item").forEach(item => {
+                const checkbox = item.querySelector(".check-item");
+                if (checkbox?.checked) {
+                    const qty = Number.parseInt(item.querySelector(".quantity-amount").value, 10) || 0;
+                    const price = Number(item.querySelector(".unit-price").dataset.price) || 0;
+                    subtotal += qty * price;
+                }
+            });
+
+            if (subtotal <= 0) {
+                if (msgBox) msgBox.innerHTML = `<div class="alert alert-warning py-2 mb-0 small">Vui lòng chọn sản phẩm trước khi áp dụng mã giảm giá.</div>`;
+                return;
+            }
+
+            const btn = document.getElementById("btn-apply-coupon");
+            btn.disabled = true;
+
+            try {
+                const response = await fetch("/api/coupons/apply", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        code: couponCode,
+                        totalAmount: subtotal
+                    })
+                });
+
+                const result = await response.json();
+                if (!response.ok || !result.success) {
+                    sessionStorage.removeItem(appliedCouponStorageKey);
+                    if (discountElement) {
+                        discountElement.dataset.discount = "0";
+                        discountElement.innerHTML = `0<sup><u>đ</u></sup>`;
+                    }
+                    updateCartTotals();
+                    if (msgBox) msgBox.innerHTML = `<div class="alert alert-danger py-2 mb-0 small">${escapeHtml(result?.message || "Mã giảm giá không hợp lệ.")}</div>`;
+                    return;
+                }
+
+                sessionStorage.setItem(appliedCouponStorageKey, result.code);
+
+                if (discountElement) {
+                    discountElement.dataset.discount = result.discountAmount;
+                    discountElement.innerHTML = `- ${formatCurrency(result.discountAmount)}`;
+                }
+
+                updateCartTotals();
+
+                if (msgBox) {
+                    msgBox.innerHTML = `<div class="alert alert-success py-2 mb-0 small"><i class="fas fa-check-circle me-1"></i>${escapeHtml(result.message)}</div>`;
+                }
+            } catch (err) {
+                console.error(err);
+                if (msgBox) msgBox.innerHTML = `<div class="alert alert-danger py-2 mb-0 small">Có lỗi xảy ra khi kiểm tra mã giảm giá.</div>`;
+            } finally {
+                btn.disabled = false;
+            }
         }
 
         function escapeAttribute(value) {

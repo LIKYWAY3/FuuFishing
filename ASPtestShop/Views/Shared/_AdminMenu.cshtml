@@ -1,4 +1,4 @@
-﻿@{
+@{
     var currentPath = Context.Request.Path.Value?.ToLower() ?? "";
 }
 
@@ -48,6 +48,30 @@
                href="/admin/orders">
                 <span class="admin-menu-icon">▥</span>
                 Quản lý đơn hàng
+            </a>
+        </li>
+
+        <li>
+            <a class="admin-menu-link @(currentPath.StartsWith("/admin/reviews") ? "active" : "")"
+               href="/admin/reviews">
+                <span class="admin-menu-icon">💬</span>
+                Quản lý đánh giá
+            </a>
+        </li>
+
+        <li>
+            <a class="admin-menu-link @(currentPath.StartsWith("/admin/users") ? "active" : "")"
+               href="/admin/users">
+                <span class="admin-menu-icon">👥</span>
+                Quản lý người dùng
+            </a>
+        </li>
+
+        <li>
+            <a class="admin-menu-link @(currentPath.StartsWith("/admin/coupons") ? "active" : "")"
+               href="/admin/coupons">
+                <span class="admin-menu-icon">🎟️</span>
+                Quản lý mã giảm giá
             </a>
         </li>
     </ul>

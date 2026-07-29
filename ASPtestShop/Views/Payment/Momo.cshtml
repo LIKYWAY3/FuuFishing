@@ -1,0 +1,102 @@
+@{
+    ViewData["Title"] = "Cổng thanh toán MoMo";
+    Layout = "~/Views/Shared/_LayoutCustomer.cshtml";
+    var amountFormatted = String.Format(new System.Globalization.CultureInfo("vi-VN"), "{0:C0}", ViewBag.Amount ?? 0);
+}
+
+<div class="container my-5 py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+                <!-- Header MoMo -->
+                <div class="p-4 text-white text-center" style="background-color: #a50064;">
+                    <img src="https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png" alt="MoMo Logo" style="height: 50px;" class="mb-2 bg-white p-1 rounded">
+                    <h4 class="fw-bold mb-0">Cổng thanh toán MoMo Sandbox</h4>
+                    <p class="small mb-0 opacity-75">Quét mã QR bằng ứng dụng MoMo để thanh toán</p>
+                </div>
+
+                <div class="card-body p-4 text-center">
+                    <div class="alert alert-light border mb-4 text-start">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Mã đơn hàng:</span>
+                            <strong class="text-dark">@ViewBag.OrderCode</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Mã giao dịch:</span>
+                            <small class="text-secondary">@ViewBag.TransId</small>
+                        </div>
+                        <div class="d-flex justify-content-between border-top pt-2 mt-2">
+                            <span class="fw-bold">Số tiền thanh toán:</span>
+                            <strong class="text-danger fs-5">@amountFormatted</strong>
+                        </div>
+                    </div>
+
+                    <!-- Mã QR Giả Lập -->
+                    <div class="my-3 p-3 bg-light rounded d-inline-block border">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=MOMO_PAYMENT_@ViewBag.OrderCode" alt="Momo QR Code" class="img-fluid rounded" style="width: 200px; height: 200px;">
+                        <p class="small text-muted mt-2 mb-0"><i class="fas fa-qrcode me-1"></i> Mở App MoMo -> Chọm Quét Mã</p>
+                    </div>
+
+                    <div id="payment-status-message" class="my-3"></div>
+
+                    <!-- Nút giả lập hoàn tất thanh toán -->
+                    <button id="btn-confirm-momo" class="btn btn-lg w-100 fw-bold text-white shadow-sm" style="background-color: #a50064; border-radius: 10px;">
+                        <i class="fas fa-check-circle me-2"></i>Xác nhận đã thanh toán MoMo
+                    </button>
+
+                    <div class="mt-3">
+                        <a href="/checkout" class="text-muted small text-decoration-none">
+                            <i class="fas fa-arrow-left me-1"></i> Hủy giao dịch & quay lại
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById("btn-confirm-momo")?.addEventListener("click", async function () {
+            const btn = this;
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Đang xử lý kết nối MoMo...`;
+
+            try {
+                const response = await fetch("/api/payments/online/confirm", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        orderCode: "@ViewBag.OrderCode",
+                        paymentMethod: "MOMO",
+                        transactionCode: "@ViewBag.TransId"
+                    })
+                });
+
+                const result = await response.json();
+                if (!response.ok || !result.success) {
+                    throw new Error(result?.message || "Thanh toán không thành công.");
+                }
+
+                document.getElementById("payment-status-message").innerHTML = `
+                    <div class="alert alert-success fw-bold">
+                        <i class="fas fa-check-circle me-2"></i>Thanh toán MoMo thành công! Đang chuyển hướng...
+                    </div>
+                `;
+
+                setTimeout(() => {
+                    window.location.href = `/checkout/success?orderCode=${encodeURIComponent("@ViewBag.OrderCode")}`;
+                }, 1500);
+            } catch (err) {
+                console.error(err);
+                document.getElementById("payment-status-message").innerHTML = `
+                    <div class="alert alert-danger fw-bold">
+                        ${err.message || "Lỗi thanh toán MoMo."}
+                    </div>
+                `;
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fas fa-check-circle me-2"></i>Xác nhận đã thanh toán MoMo`;
+            }
+        });
+    </script>
+}

@@ -49,6 +49,9 @@ namespace ASPtestShop.Data.Entities
         [MaxLength(500)]
         public string? Note { get; set; } = string.Empty;
 
+        [MaxLength(500)]
+        public string? CancelReason { get; set; }
+
         public ApplicationUser? User { get; set; }
 
         public ICollection<OrderItem> OrderItems { get; set; }

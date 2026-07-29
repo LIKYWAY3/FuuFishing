@@ -108,5 +108,28 @@ namespace ASPtestShop.Controllers.Api
                 OrderDetails = order
             });
         }
+
+        //===============================UC-15: CANCEL ORDER======================================
+        // POST: api/orders/{id}/cancel
+        [HttpPost("{id:int}/cancel")]
+        [HttpPost("cancel/{id:int}")]
+        public async Task<IActionResult> CancelOrder(int id, [FromBody] CancelOrderDto? dto)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new { Success = false, Message = "Bạn chưa đăng nhập" });
+            }
+
+            var reason = dto?.Reason;
+            var (success, message) = await _orderService.CancelOrderAsync(userId, id, reason);
+
+            if (!success)
+            {
+                return BadRequest(new { Success = false, Message = message });
+            }
+
+            return Ok(new { Success = true, Message = message });
+        }
     }
 }

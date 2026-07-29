@@ -1,4 +1,4 @@
-﻿@{
+@{
     ViewData["Title"] = "Thanh toán";
 }
 
@@ -74,7 +74,16 @@
 
                             <select id="paymentMethod" class="form-select">
                                 <option value="COD" selected>
-                                    Thanh toán khi nhận hàng COD
+                                    Thanh toán khi nhận hàng (COD)
+                                </option>
+                                <option value="MOMO">
+                                    Ví điện tử MoMo (QR Code / App MoMo)
+                                </option>
+                                <option value="ZALOPAY">
+                                    Ví điện tử ZaloPay (QR Code / App ZaloPay)
+                                </option>
+                                <option value="VNPAY">
+                                    Cổng thanh toán VNPAY (ATM / Mobile Banking)
                                 </option>
                             </select>
                         </div>
@@ -582,6 +591,9 @@
                         "paymentMethod"
                     ).value,
 
+                couponCode:
+                    sessionStorage.getItem("appliedCouponCode"),
+
                 cartItemIds:
                     selectedCartItemIds
             };
@@ -650,12 +662,16 @@
                     selectedCartItemsStorageKey
                 );
 
+                if (result?.requiresRedirect && result?.paymentUrl) {
+                    window.location.href = result.paymentUrl;
+                    return;
+                }
+
                 const orderCode =
                     result?.orderCode ?? "";
 
                 window.location.href =
-                    `/checkout/success?orderCode=${encodeURIComponent(orderCode)
-                    }`;
+                    `/checkout/success?orderCode=${encodeURIComponent(orderCode)}`;
             }
             catch (error) {
                 console.error(

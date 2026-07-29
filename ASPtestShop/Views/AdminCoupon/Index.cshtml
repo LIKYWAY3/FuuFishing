@@ -1,0 +1,434 @@
+@{
+    ViewData["Title"] = "Quản lý mã giảm giá";
+    Layout = "_AdminLayout";
+}
+
+<div class="container-fluid mt-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-ticket-perforated me-2"></i>Quản lý mã giảm giá (Coupon)</h2>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createCouponModal">
+            + Tạo mã giảm giá mới
+        </button>
+    </div>
+
+    <div id="alert-box"></div>
+
+    <!-- TÌM KIẾM -->
+    <div class="card mb-4 border-0 shadow-sm">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-9">
+                    <input type="text" id="search-input" class="form-control" placeholder="Tìm theo mã giảm giá (Ví dụ: HSHOP10, SUMMER)...">
+                </div>
+                <div class="col-md-3">
+                    <button id="btn-search" class="btn btn-primary w-100">Tìm kiếm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BẢNG DANH SÁCH MÃ GIẢM GIÁ -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">#ID</th>
+                            <th>Mã Code</th>
+                            <th>Loại giảm gia</th>
+                            <th>Mức giảm</th>
+                            <th>Đơn tối thiểu</th>
+                            <th>Thời hạn sử dụng</th>
+                            <th>Trạng thái</th>
+                            <th class="text-end pe-3">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="coupons-tbody">
+                        <tr>
+                            <td colspan="8" class="text-center py-4 text-muted">
+                                <div class="spinner-border spinner-border-sm text-primary me-2"></div> Đang tải danh sách mã giảm giá...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL TẠO MÃ GIẢM GIÁ -->
+<div class="modal fade" id="createCouponModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="form-create-coupon">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Tạo mã giảm giá mới</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Mã Code <span class="text-danger">*</span></label>
+                        <input type="text" id="create-code" class="form-control text-uppercase fw-bold" placeholder="Ví dụ: HSHOP10, MAGIAM50K" required maxlength="50">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Loại giảm giá <span class="text-danger">*</span></label>
+                            <select id="create-type" class="form-select">
+                                <option value="PERCENT">Theo phần trăm (%)</option>
+                                <option value="FIXED">Số tiền cố định (VNĐ)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Mức giảm giá <span class="text-danger">*</span></label>
+                            <input type="number" id="create-value" class="form-control" placeholder="10 hoặc 50000" required min="1">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Đơn tối thiểu (VNĐ)</label>
+                            <input type="number" id="create-min-amount" class="form-control" value="0" min="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Giảm tối đa (VNĐ)</label>
+                            <input type="number" id="create-max-discount" class="form-control" placeholder="Để trống nếu không giới hạn">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Ngày bắt đầu <span class="text-danger">*</span></label>
+                            <input type="datetime-local" id="create-start-date" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Ngày kết thúc <span class="text-danger">*</span></label>
+                            <input type="datetime-local" id="create-end-date" class="form-control" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Tạo mã</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL SỬA MÃ GIẢM GIÁ -->
+<div class="modal fade" id="editCouponModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="form-edit-coupon">
+                <input type="hidden" id="edit-couponId" />
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Cập nhật mã giảm giá</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Mã Code <span class="text-danger">*</span></label>
+                        <input type="text" id="edit-code" class="form-control text-uppercase fw-bold" required maxlength="50">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Loại giảm giá</label>
+                            <select id="edit-type" class="form-select">
+                                <option value="PERCENT">Theo phần trăm (%)</option>
+                                <option value="FIXED">Số tiền cố định (VNĐ)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Mức giảm giá</label>
+                            <input type="number" id="edit-value" class="form-control" required min="1">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Đơn tối thiểu (VNĐ)</label>
+                            <input type="number" id="edit-min-amount" class="form-control" min="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Giảm tối đa (VNĐ)</label>
+                            <input type="number" id="edit-max-discount" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Ngày bắt đầu</label>
+                            <input type="datetime-local" id="edit-start-date" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Ngày kết thúc</label>
+                            <input type="datetime-local" id="edit-end-date" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" id="edit-is-active" class="form-check-input">
+                        <label class="form-check-label fw-bold" for="edit-is-active">Đang kích hoạt</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let allCoupons = [];
+
+        document.addEventListener("DOMContentLoaded", function () {
+            // Set mặc định ngày bắt đầu/kết thúc cho modal tạo mới
+            const now = new Date();
+            const nextMonth = new Date();
+            nextMonth.setMonth(now.getMonth() + 1);
+
+            document.getElementById("create-start-date").value = formatDatetimeLocal(now);
+            document.getElementById("create-end-date").value = formatDatetimeLocal(nextMonth);
+
+            loadCoupons();
+
+            document.getElementById("btn-search")?.addEventListener("click", loadCoupons);
+            document.getElementById("search-input")?.addEventListener("keypress", function (e) {
+                if (e.key === "Enter") loadCoupons();
+            });
+
+            document.getElementById("form-create-coupon")?.addEventListener("submit", handleCreateCoupon);
+            document.getElementById("form-edit-coupon")?.addEventListener("submit", handleEditCoupon);
+        });
+
+        async function loadCoupons() {
+            const tbody = document.getElementById("coupons-tbody");
+            const search = document.getElementById("search-input")?.value?.trim() || "";
+
+            try {
+                let url = `/api/admin/coupons?search=${encodeURIComponent(search)}`;
+                const response = await fetch(url, { credentials: "include" });
+                if (!response.ok) throw new Error("Không thể tải danh sách mã giảm giá.");
+
+                allCoupons = await response.json();
+                renderCouponsTable(allCoupons);
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="text-center text-danger py-4">
+                            Lỗi khi tải danh sách mã giảm giá.
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        function renderCouponsTable(coupons) {
+            const tbody = document.getElementById("coupons-tbody");
+
+            if (!coupons || coupons.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="text-center py-4 text-muted">
+                            Không tìm thấy mã giảm giá nào.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            let html = "";
+            const now = new Date();
+
+            coupons.forEach(c => {
+                const startDate = new Date(c.startDate);
+                const endDate = new Date(c.endDate);
+
+                let statusBadge = "";
+                if (!c.isActive) {
+                    statusBadge = `<span class="badge bg-secondary">Đã khóa</span>`;
+                } else if (now < startDate) {
+                    statusBadge = `<span class="badge bg-warning text-dark">Chưa đến hạn</span>`;
+                } else if (now > endDate) {
+                    statusBadge = `<span class="badge bg-danger">Hết hạn</span>`;
+                } else {
+                    statusBadge = `<span class="badge bg-success">Đang hiệu lực</span>`;
+                }
+
+                const isPercent = c.discountType.toUpperCase() === "PERCENT";
+                const valueStr = isPercent ? `${c.discountValue}%` : formatCurrencyNumber(c.discountValue);
+                const minAmountStr = formatCurrencyNumber(c.minOrderAmount);
+                const maxDiscountStr = c.maxDiscountAmount ? formatCurrencyNumber(c.maxDiscountAmount) : "Không giới hạn";
+
+                const dateRangeStr = `${startDate.toLocaleDateString("vi-VN")} - ${endDate.toLocaleDateString("vi-VN")}`;
+
+                html += `
+                    <tr>
+                        <td class="ps-3 fw-bold">#${c.couponId}</td>
+                        <td><span class="badge bg-dark fs-6 font-monospace">${escapeHtml(c.code)}</span></td>
+                        <td>${isPercent ? '<span class="text-primary fw-bold">Phần trăm (%)</span>' : '<span class="text-success fw-bold">Tiền mặt (VNĐ)</span>'}</td>
+                        <td class="fw-bold text-danger">${valueStr}</td>
+                        <td>${minAmountStr}</td>
+                        <td><small class="text-muted">${dateRangeStr}</small></td>
+                        <td>${statusBadge}</td>
+                        <td class="text-end pe-3">
+                            <button class="btn btn-sm btn-outline-primary me-1" onclick="openEditModal(${c.couponId})" title="Sửa">
+                                Sửa
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteCoupon(${c.couponId}, '${escapeHtml(c.code)}')" title="Xóa">
+                                Xóa
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        async function handleCreateCoupon(e) {
+            e.preventDefault();
+
+            const dto = {
+                code: document.getElementById("create-code").value.trim(),
+                discountType: document.getElementById("create-type").value,
+                discountValue: parseFloat(document.getElementById("create-value").value) || 0,
+                minOrderAmount: parseFloat(document.getElementById("create-min-amount").value) || 0,
+                maxDiscountAmount: document.getElementById("create-max-discount").value ? parseFloat(document.getElementById("create-max-discount").value) : null,
+                startDate: new Date(document.getElementById("create-start-date").value).toISOString(),
+                endDate: new Date(document.getElementById("create-end-date").value).toISOString()
+            };
+
+            try {
+                const response = await fetch("/api/admin/coupons", {
+                    method: "POST",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(dto)
+                });
+
+                const result = await response.json();
+                if (!response.ok) {
+                    alert(result?.message || "Tạo mã thất bại.");
+                    return;
+                }
+
+                bootstrap.Modal.getInstance(document.getElementById("createCouponModal"))?.hide();
+                document.getElementById("form-create-coupon").reset();
+                showAlert(result?.message || "Tạo mã giảm giá thành công!", "success");
+                loadCoupons();
+            } catch (err) {
+                console.error(err);
+                alert("Lỗi kết nối khi tạo mã giảm giá.");
+            }
+        }
+
+        function openEditModal(couponId) {
+            const c = allCoupons.find(x => x.couponId === couponId);
+            if (!c) return;
+
+            document.getElementById("edit-couponId").value = c.couponId;
+            document.getElementById("edit-code").value = c.code;
+            document.getElementById("edit-type").value = c.discountType;
+            document.getElementById("edit-value").value = c.discountValue;
+            document.getElementById("edit-min-amount").value = c.minOrderAmount;
+            document.getElementById("edit-max-discount").value = c.maxDiscountAmount || "";
+            document.getElementById("edit-start-date").value = formatDatetimeLocal(new Date(c.startDate));
+            document.getElementById("edit-end-date").value = formatDatetimeLocal(new Date(c.endDate));
+            document.getElementById("edit-is-active").checked = c.isActive;
+
+            new bootstrap.Modal(document.getElementById("editCouponModal")).show();
+        }
+
+        async function handleEditCoupon(e) {
+            e.preventDefault();
+
+            const couponId = parseInt(document.getElementById("edit-couponId").value, 10);
+            const dto = {
+                code: document.getElementById("edit-code").value.trim(),
+                discountType: document.getElementById("edit-type").value,
+                discountValue: parseFloat(document.getElementById("edit-value").value) || 0,
+                minOrderAmount: parseFloat(document.getElementById("edit-min-amount").value) || 0,
+                maxDiscountAmount: document.getElementById("edit-max-discount").value ? parseFloat(document.getElementById("edit-max-discount").value) : null,
+                startDate: new Date(document.getElementById("edit-start-date").value).toISOString(),
+                endDate: new Date(document.getElementById("edit-end-date").value).toISOString(),
+                isActive: document.getElementById("edit-is-active").checked
+            };
+
+            try {
+                const response = await fetch(`/api/admin/coupons/${couponId}`, {
+                    method: "PUT",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(dto)
+                });
+
+                const result = await response.json();
+                if (!response.ok) {
+                    alert(result?.message || "Cập nhật thất bại.");
+                    return;
+                }
+
+                bootstrap.Modal.getInstance(document.getElementById("editCouponModal"))?.hide();
+                showAlert(result?.message || "Cập nhật mã giảm giá thành công!", "success");
+                loadCoupons();
+            } catch (err) {
+                console.error(err);
+                alert("Lỗi mạng khi cập nhật mã.");
+            }
+        }
+
+        async function deleteCoupon(couponId, code) {
+            if (!confirm(`Bạn có chắc muốn xóa vĩnh viễn mã giảm giá '${code}'?`)) return;
+
+            try {
+                const response = await fetch(`/api/admin/coupons/${couponId}`, {
+                    method: "DELETE",
+                    credentials: "include"
+                });
+
+                const result = await response.json();
+                if (!response.ok) {
+                    showAlert(result?.message || "Xóa thất bại.", "danger");
+                    return;
+                }
+
+                showAlert(result?.message || "Đã xóa mã giảm giá!", "success");
+                loadCoupons();
+            } catch (err) {
+                console.error(err);
+                showAlert("Lỗi khi xóa mã giảm giá.", "danger");
+            }
+        }
+
+        function showAlert(msg, type) {
+            const box = document.getElementById("alert-box");
+            if (!box) return;
+            box.innerHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${escapeHtml(msg)}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+        }
+
+        function formatDatetimeLocal(d) {
+            const pad = num => String(num).padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+
+        function formatCurrencyNumber(val) {
+            return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(val || 0);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return "";
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+}

@@ -1,4 +1,4 @@
-﻿namespace ASPtestShop.Models.DTO.Order
+namespace ASPtestShop.Models.DTO.Order
 {
     public class OrderHistoryDto
     {
@@ -27,6 +27,8 @@
         public string ShippingAddress { get; set; }
 
         public string? Note { get; set; }
+
+        public string? CancelReason { get; set; }
 
         public DateTime CreatedAt { get; set; }
 

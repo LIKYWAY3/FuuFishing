@@ -1,0 +1,296 @@
+@{
+    ViewData["Title"] = "Quản lý & Kiểm duyệt đánh giá";
+    Layout = "_AdminLayout";
+}
+
+<div class="container-fluid mt-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-shield-check me-2"></i>Quản lý & Kiểm duyệt đánh giá</h2>
+    </div>
+
+    <div id="alert-box"></div>
+
+    <!-- BỘ LỌC VÀ TÌM KIẾM -->
+    <div class="card mb-4 border-0 shadow-sm">
+        <div class="card-body">
+            <div class="row g-3 align-items-center">
+                <div class="col-md-6">
+                    <div class="btn-group w-100" role="group" id="status-filter-group">
+                        <button type="button" class="btn btn-outline-primary active" data-status="">Tất cả</button>
+                        <button type="button" class="btn btn-outline-warning" data-status="false">Chờ duyệt <span id="badge-pending" class="badge bg-danger ms-1">0</span></button>
+                        <button type="button" class="btn btn-outline-success" data-status="true">Đã duyệt</button>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <input type="text" id="search-input" class="form-control" placeholder="Tìm theo tên sản phẩm, tên người dùng, nội dung...">
+                        <button class="btn btn-primary" type="button" id="btn-search">
+                            Tìm kiếm
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BẢNG DANH SÁCH ĐÁNH GIÁ -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3" style="width: 60px;">#ID</th>
+                            <th style="width: 220px;">Sản phẩm</th>
+                            <th style="width: 180px;">Người đánh giá</th>
+                            <th style="width: 110px;">Đánh giá</th>
+                            <th>Nội dung bình luận</th>
+                            <th style="width: 140px;">Ngày gửi</th>
+                            <th style="width: 130px;">Trạng thái</th>
+                            <th class="text-end pe-3" style="width: 160px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reviews-tbody">
+                        <tr>
+                            <td colspan="8" class="text-center py-4 text-muted">
+                                <div class="spinner-border spinner-border-sm text-primary me-2"></div> Đang tải danh sách đánh giá...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let currentStatusFilter = "";
+        let currentSearchKeyword = "";
+
+        document.addEventListener("DOMContentLoaded", function () {
+            loadReviews();
+
+            // SỰ KIỆN NÚT LỌC TRẠNG THÁI
+            document.querySelectorAll("#status-filter-group button").forEach(btn => {
+                btn.addEventListener("click", function () {
+                    document.querySelectorAll("#status-filter-group button").forEach(b => b.classList.remove("active"));
+                    this.classList.add("active");
+                    currentStatusFilter = this.getAttribute("data-status");
+                    loadReviews();
+                });
+            });
+
+            // SỰ KIỆN TÌM KIẾM
+            document.getElementById("btn-search")?.addEventListener("click", function () {
+                currentSearchKeyword = document.getElementById("search-input").value.trim();
+                loadReviews();
+            });
+
+            document.getElementById("search-input")?.addEventListener("keypress", function (e) {
+                if (e.key === "Enter") {
+                    currentSearchKeyword = this.value.trim();
+                    loadReviews();
+                }
+            });
+        });
+
+        // ==================== LOAD REVIEWS ====================
+        async function loadReviews() {
+            const tbody = document.getElementById("reviews-tbody");
+            if (!tbody) return;
+
+            try {
+                let url = "/api/admin/reviews?";
+                if (currentStatusFilter !== "") {
+                    url += `isApproved=${currentStatusFilter}&`;
+                }
+                if (currentSearchKeyword !== "") {
+                    url += `search=${encodeURIComponent(currentSearchKeyword)}`;
+                }
+
+                const response = await fetch(url, { credentials: "include" });
+                if (!response.ok) throw new Error("Không thể tải danh sách đánh giá.");
+
+                const reviews = await response.json();
+                renderReviewsTable(reviews);
+                updatePendingBadge(reviews);
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="text-center text-danger py-4">
+                            Đã xảy ra lỗi khi tải danh sách bình luận.
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // ==================== RENDER TABLE ====================
+        function renderReviewsTable(reviews) {
+            const tbody = document.getElementById("reviews-tbody");
+
+            if (!reviews || reviews.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="text-center py-4 text-muted">
+                            Không tìm thấy đánh giá nào.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            let html = "";
+            reviews.forEach(r => {
+                const dateStr = new Date(r.createdAt).toLocaleString("vi-VN", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit"
+                });
+
+                const starsHtml = renderStars(r.rating);
+                const statusBadge = r.isApproved
+                    ? `<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Đã duyệt</span>`
+                    : `<span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>Chờ duyệt</span>`;
+
+                const productImg = r.productImage || "/images/no-image.png";
+
+                html += `
+                    <tr>
+                        <td class="ps-3 fw-bold">#${r.reviewId}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <img src="${productImg}" alt="${escapeHtml(r.productName)}" class="rounded me-2" style="width: 36px; height: 36px; object-fit: cover;" onerror="this.src='/images/no-image.png'">
+                                <div class="text-truncate" style="max-width: 160px;" title="${escapeHtml(r.productName)}">
+                                    <a href="/Product/Detail/${r.productId}" target="_blank" class="text-decoration-none fw-bold text-dark">
+                                        ${escapeHtml(r.productName)}
+                                    </a>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="fw-bold">${escapeHtml(r.userName)}</div>
+                            <small class="text-muted d-block text-truncate" style="max-width: 160px;">${escapeHtml(r.userEmail || '')}</small>
+                        </td>
+                        <td class="text-warning">${starsHtml}</td>
+                        <td>
+                            <div class="text-break" style="max-width: 350px;">
+                                ${escapeHtml(r.comment)}
+                            </div>
+                        </td>
+                        <td><small class="text-muted">${dateStr}</small></td>
+                        <td>${statusBadge}</td>
+                        <td class="text-end pe-3">
+                            ${r.isApproved ? `
+                                <button class="btn btn-sm btn-outline-warning me-1" onclick="toggleApprove(${r.reviewId}, false)" title="Bỏ duyệt / Ẩn">
+                                    Ẩn
+                                </button>
+                            ` : `
+                                <button class="btn btn-sm btn-success me-1" onclick="toggleApprove(${r.reviewId}, true)" title="Duyệt bình luận">
+                                    Duyệt
+                                </button>
+                            `}
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteReview(${r.reviewId})" title="Xóa">
+                                Xóa
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        function updatePendingBadge(reviews) {
+            const badge = document.getElementById("badge-pending");
+            if (badge) {
+                const count = reviews.filter(r => !r.isApproved).length;
+                badge.textContent = count;
+            }
+        }
+
+        // ==================== ACTIONS ====================
+        async function toggleApprove(reviewId, isApproved) {
+            try {
+                const response = await fetch(`/api/admin/reviews/${reviewId}/approve`, {
+                    method: "PUT",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ isApproved: isApproved })
+                });
+
+                const result = await response.json();
+                if (!response.ok) {
+                    showAlert(result?.message || "Thao tác thất bại", "danger");
+                    return;
+                }
+
+                showAlert(result?.message || "Cập nhật trạng thái thành công!", "success");
+                loadReviews();
+            } catch (err) {
+                console.error(err);
+                showAlert("Lỗi khi cập nhật trạng thái bình luận.", "danger");
+            }
+        }
+
+        async function deleteReview(reviewId) {
+            if (!confirm(`Bạn có chắc chắn muốn xóa bình luận #${reviewId} không?`)) return;
+
+            try {
+                const response = await fetch(`/api/admin/reviews/${reviewId}`, {
+                    method: "DELETE",
+                    credentials: "include"
+                });
+
+                const result = await response.json();
+                if (!response.ok) {
+                    showAlert(result?.message || "Xóa thất bại.", "danger");
+                    return;
+                }
+
+                showAlert(result?.message || "Xóa bình luận thành công!", "success");
+                loadReviews();
+            } catch (err) {
+                console.error(err);
+                showAlert("Có lỗi xảy ra khi xóa bình luận.", "danger");
+            }
+        }
+
+        function showAlert(msg, type) {
+            const box = document.getElementById("alert-box");
+            if (!box) return;
+            box.innerHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${escapeHtml(msg)}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+        }
+
+        function renderStars(rating) {
+            let html = "";
+            for (let i = 1; i <= 5; i++) {
+                if (i <= rating) {
+                    html += `★`;
+                } else {
+                    html += `☆`;
+                }
+            }
+            return html;
+        }
+
+        function escapeHtml(str) {
+            if (!str) return "";
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+}

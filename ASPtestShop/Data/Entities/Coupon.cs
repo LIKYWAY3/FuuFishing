@@ -13,7 +13,7 @@ namespace ASPtestShop.Data.Entities
         [Required]
         [MaxLength(50)]
         public string Code { get; set; }
-
+ 
         [MaxLength(20)]
         public string DiscountType { get; set; }
 

@@ -1,4 +1,4 @@
-﻿using ASPtestShop.Models.DTO.Payment;
+using ASPtestShop.Models.DTO.Payment;
 
 namespace ASPtestShop.Services.Interfaces;
 
@@ -9,4 +9,7 @@ public interface IPaymentService
 
     // Xác nhận thanh toán COD
     Task<bool> ConfirmCodPaymentAsync(int orderId, string userId);
+
+    // Xác nhận thanh toán Online (MoMo, ZaloPay, VNPay)
+    Task<bool> ConfirmOnlinePaymentAsync(string orderCode, string paymentMethod, string? transactionCode = null);
 }

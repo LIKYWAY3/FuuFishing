@@ -1,4 +1,4 @@
-﻿namespace ASPtestShop.Models.DTO.Order
+namespace ASPtestShop.Models.DTO.Order
 {
     public class CheckoutResultDto
     {
@@ -23,5 +23,9 @@
         public string? PaymentStatus { get; set; }
 
         public string? PaymentMethod { get; set; }
+
+        public string? PaymentUrl { get; set; }
+
+        public bool RequiresRedirect { get; set; }
     }
 }

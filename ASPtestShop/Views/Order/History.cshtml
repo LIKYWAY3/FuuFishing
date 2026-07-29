@@ -1,4 +1,4 @@
-﻿@{
+@{
     ViewData["Title"] = "Lịch sử đơn hàng";
 }
 
@@ -148,13 +148,60 @@
                     </td>
 
                     <td class="text-end">
-                        <a href="/orders/detail/${order.orderId}" class="btn btn-sm btn-dark">
+                        <a href="/orders/detail/${order.orderId}" class="btn btn-sm btn-dark me-1">
                             Xem chi tiết
                         </a>
+                        ${(order.orderStatus === 'Pending') ? `
+                            <button onclick="cancelOrderHandler(${order.orderId})" class="btn btn-sm btn-outline-danger">
+                                Hủy đơn
+                            </button>
+                        ` : ''}
                     </td>
                 </tr>
             `;
         });
+    }
+
+    async function cancelOrderHandler(orderId) {
+        const reason = prompt("Nhập lý do bạn muốn hủy đơn hàng này:");
+        if (reason === null) return; // Khách hàng bấm Hủy prompt
+
+        try {
+            const response = await fetch(`/api/orders/${orderId}/cancel`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ reason: reason || "Khách hàng tự hủy đơn" }),
+                credentials: "include"
+            });
+
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                orderMessage.innerHTML = `
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        ${result.message || result.Message || "Không thể hủy đơn hàng."}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+                return;
+            }
+
+            orderMessage.innerHTML = `
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>${result.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+
+            loadOrderHistory();
+        } catch (err) {
+            console.error("Lỗi khi hủy đơn:", err);
+            orderMessage.innerHTML = `
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    Đã xảy ra lỗi kết nối. Vui lòng thử lại.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+        }
     }
 
     function formatCurrency(value) {

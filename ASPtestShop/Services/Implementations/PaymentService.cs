@@ -1,4 +1,5 @@
-﻿using ASPtestShop.Data;
+using ASPtestShop.Data;
+using ASPtestShop.Data.Entities;
 using ASPtestShop.Models.DTO.Payment;
 using ASPtestShop.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -56,33 +57,59 @@ namespace ASPtestShop.Services.Implementations
                     p.OrderId == orderId &&
                     p.Order.UserId == userId);
 
-            // Không tìm thấy payment hoặc không phải đơn của user này
-            if (payment == null)
-            {
-                return false;
-            }
+            if (payment == null) return false;
 
-            // Chỉ cho xác nhận thanh toán COD
             if (!string.Equals(payment.PaymentMethod, "COD", StringComparison.OrdinalIgnoreCase))
             {
                 return false;
             }
 
-            // Nếu đã thanh toán rồi thì không xác nhận lại
             if (string.Equals(payment.PaymentStatus, "Paid", StringComparison.OrdinalIgnoreCase))
             {
                 return false;
             }
 
-            // Cập nhật payment
             payment.PaymentStatus = "Paid";
             payment.PaidAt = DateTime.Now;
-
-            // Cập nhật trạng thái thanh toán của order
             payment.Order.PaymentStatus = "Paid";
 
             await _context.SaveChangesAsync();
+            return true;
+        }
 
+        // Xác nhận thanh toán Online (MoMo, ZaloPay, VNPay)
+        public async Task<bool> ConfirmOnlinePaymentAsync(string orderCode, string paymentMethod, string? transactionCode = null)
+        {
+            var order = await _context.Orders.FirstOrDefaultAsync(o => o.OrderCode == orderCode);
+            if (order == null) return false;
+
+            var payment = await _context.Payments.FirstOrDefaultAsync(p => p.OrderId == order.OrderId);
+            if (payment == null)
+            {
+                payment = new Payment
+                {
+                    OrderId = order.OrderId,
+                    PaymentMethod = paymentMethod,
+                    PaymentStatus = "Paid",
+                    TransactionCode = transactionCode,
+                    PaidAt = DateTime.Now
+                };
+                _context.Payments.Add(payment);
+            }
+            else
+            {
+                payment.PaymentStatus = "Paid";
+                payment.PaidAt = DateTime.Now;
+                if (!string.IsNullOrEmpty(transactionCode))
+                {
+                    payment.TransactionCode = transactionCode;
+                }
+            }
+
+            order.PaymentStatus = "Paid";
+            order.OrderStatus = "Processing";
+
+            await _context.SaveChangesAsync();
             return true;
         }
     }

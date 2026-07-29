@@ -124,20 +124,24 @@ builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IReviewService, ReviewService>();
+builder.Services.AddScoped<ICouponService, CouponService>();
 //admin services
 builder.Services.AddScoped<IAdminProductService, AdminProductService>();
 builder.Services.AddScoped<IAdminUploadService, AdminUploadService>();
 builder.Services.AddScoped<IAdminCategoryService, AdminCategoryService>();
 builder.Services.AddScoped<IAdminAuthService, AdminAuthService>();
 builder.Services.AddScoped<IAdminOrderService, AdminOrderService>();
+builder.Services.AddScoped<IAdminReviewService, AdminReviewService>();
+builder.Services.AddScoped<IAdminUserService, AdminUserService>();
+builder.Services.AddScoped<IAdminCouponService, AdminCouponService>();
 //user services
 builder.Services.AddScoped<IUserAuthService, UserAuthService>();
 // Payment providers
 builder.Services.AddScoped<IPaymentProvider, CodPaymentProvider>();
-// tạm thời chưa dùng
-//builder.Services.AddScoped<IPaymentProvider, MomoPaymentProvider>();
-//builder.Services.AddScoped<IPaymentProvider, ZaloPayPaymentProvider>();
-//builder.Services.AddScoped<IPaymentProvider, VnPayPaymentProvider>();
+builder.Services.AddScoped<IPaymentProvider, MomoPaymentProvider>();
+builder.Services.AddScoped<IPaymentProvider, ZaloPayPaymentProvider>();
+builder.Services.AddScoped<IPaymentProvider, VnPayPaymentProvider>();
 builder.Services.AddScoped<IPaymentProviderFactory, PaymentProviderFactory>();
 builder.Services.AddHttpClient();
 
@@ -262,6 +266,35 @@ using (var scope = app.Services.CreateScope())
     if (!await userManager.IsInRoleAsync(adminUser, "Admin"))
     {
         await userManager.AddToRoleAsync(adminUser, "Admin");
+    }
+
+    // Seed mã giảm giá mẫu nếu chưa có
+    if (!await dbContext.Coupons.AnyAsync())
+    {
+        dbContext.Coupons.AddRange(
+            new ASPtestShop.Data.Entities.Coupon
+            {
+                Code = "HELLOHSHOP",
+                DiscountType = "FIXED",
+                DiscountValue = 50000,
+                MinOrderAmount = 100000,
+                StartDate = DateTime.UtcNow.AddDays(-1),
+                EndDate = DateTime.UtcNow.AddYears(1),
+                IsActive = true
+            },
+            new ASPtestShop.Data.Entities.Coupon
+            {
+                Code = "HSHOP10",
+                DiscountType = "PERCENT",
+                DiscountValue = 10,
+                MinOrderAmount = 200000,
+                MaxDiscountAmount = 100000,
+                StartDate = DateTime.UtcNow.AddDays(-1),
+                EndDate = DateTime.UtcNow.AddYears(1),
+                IsActive = true
+            }
+        );
+        await dbContext.SaveChangesAsync();
     }
 }
 // =========================================================================

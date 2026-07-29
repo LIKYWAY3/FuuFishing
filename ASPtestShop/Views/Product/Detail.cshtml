@@ -1,4 +1,4 @@
-﻿    @{
+    @{
         ViewData["Title"] = "Chi tiết sản phẩm";
         Layout = "~/Views/Shared/_LayoutCustomer.cshtml";
     }
@@ -149,6 +149,98 @@
 
             </div>
         </div>
+
+        <!-- KHU VỰC BÌNH LUẬN & ĐÁNH GIÁ -->
+        <div id="reviews-section" class="mt-5 pt-4 border-top">
+            <h3 class="fw-bold mb-4" style="color: #2b3a28;">
+                <i class="far fa-comments me-2"></i>Đánh giá & Bình luận sản phẩm
+            </h3>
+
+            <!-- Thống kê đánh giá -->
+            <div class="row align-items-center mb-4 bg-light p-3 rounded shadow-sm">
+                <div class="col-md-4 text-center border-end">
+                    <h1 id="avg-rating-score" class="display-4 fw-bold text-warning mb-0">0.0</h1>
+                    <div id="avg-rating-stars" class="text-warning my-1 fs-5">
+                        <i class="far fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i>
+                    </div>
+                    <span id="total-reviews-count" class="text-muted fs-6">0 bình luận</span>
+                </div>
+                <div class="col-md-8 ps-md-4 mt-3 mt-md-0">
+                    <h5 class="fw-bold">Quy định bình luận:</h5>
+                    <ul class="text-muted mb-0 small">
+                        <li>Chỉ những tài khoản đã <strong>đăng nhập</strong> mới được phép viết bình luận.</li>
+                        <li>Hệ thống <strong>tự động lấy tên tài khoản</strong> của bạn để bình luận (không cần chọn/nhập tên).</li>
+                        <li>Vui lòng giữ lịch sự và tuân thủ chuẩn mực văn hóa khi bình luận.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Form viết bình luận -->
+            <div class="card mb-4 border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <h5 class="card-title fw-bold mb-3">Viết nhận xét của bạn</h5>
+
+                    @if (User.Identity != null && User.Identity.IsAuthenticated)
+                    {
+                        <form id="form-add-review">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Tài khoản bình luận (Tự động):</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white"><i class="fas fa-user-check text-success"></i></span>
+                                    <input type="text" class="form-control bg-light fw-bold text-dark" value="@User.Identity.Name" readonly disabled />
+                                </div>
+                                <small class="text-muted">Tên hiển thị được tự động trích xuất từ tài khoản đang đăng nhập.</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Đánh giá sản phẩm:</label>
+                                <div class="star-rating-select fs-4 text-warning">
+                                    <input type="hidden" id="review-rating" value="5" />
+                                    <i class="fas fa-star star-btn" data-value="1" style="cursor: pointer;"></i>
+                                    <i class="fas fa-star star-btn" data-value="2" style="cursor: pointer;"></i>
+                                    <i class="fas fa-star star-btn" data-value="3" style="cursor: pointer;"></i>
+                                    <i class="fas fa-star star-btn" data-value="4" style="cursor: pointer;"></i>
+                                    <i class="fas fa-star star-btn" data-value="5" style="cursor: pointer;"></i>
+                                    <span id="rating-label" class="fs-6 text-muted ms-2">(5/5 Sao - Rất tốt)</span>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="review-comment" class="form-label fw-bold">Nội dung bình luận:</label>
+                                <textarea id="review-comment" class="form-control" rows="3" placeholder="Chia sẻ cảm nhận của bạn về sản phẩm này..." required maxlength="1000"></textarea>
+                            </div>
+
+                            <div id="review-form-message" class="mb-3"></div>
+
+                            <button type="submit" id="btn-submit-review" class="btn btn-success px-4" style="background-color: #3b5d49; border-color: #3b5d49;">
+                                <i class="fas fa-paper-plane me-2"></i>Gửi bình luận
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning d-flex align-items-center mb-0" role="alert">
+                            <i class="fas fa-lock fs-3 me-3 text-warning"></i>
+                            <div>
+                                <strong>Bạn cần đăng nhập để bình luận!</strong><br />
+                                Chỉ thành viên đã đăng nhập mới có thể gửi nhận xét. 
+                                <a href="/account/login?returnUrl=@(Url.Action("Detail", "Product", new { id = ViewBag.ProductId }))" class="btn btn-sm btn-dark ms-2">Đăng nhập ngay</a>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Danh sách bình luận -->
+            <div class="reviews-list-container">
+                <h5 class="fw-bold mb-3">Tất cả bình luận</h5>
+                <div id="reviews-loading" class="text-center py-3">
+                    <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+                    <span class="ms-2 text-muted">Đang tải bình luận...</span>
+                </div>
+                <div id="reviews-list"></div>
+            </div>
+        </div>
     </div>
 
     @section Scripts {
@@ -159,12 +251,21 @@
 
             let currentProductId = 0;
 
+            const currentUserId = '@(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "")';
+
             document.addEventListener("DOMContentLoaded", function () {
                 loadProductDetail();
+                loadReviews(productIdFromRoute);
 
                 document
                     .getElementById("btn-add-to-cart")
-                    .addEventListener("click", addToCart);
+                    ?.addEventListener("click", addToCart);
+
+                const reviewForm = document.getElementById("form-add-review");
+                if (reviewForm) {
+                    reviewForm.addEventListener("submit", handleReviewSubmit);
+                    initStarRating();
+                }
             });
 
             // ==================== LOAD PRODUCT ====================
@@ -584,6 +685,246 @@
                     style: "currency",
                     currency: "VND"
                 }).format(Number(value) || 0);
+            }
+
+            // ==================== REVIEWS LOGIC ====================
+
+            function initStarRating() {
+                const stars = document.querySelectorAll(".star-rating-select .star-btn");
+                const ratingInput = document.getElementById("review-rating");
+                const ratingLabel = document.getElementById("rating-label");
+
+                const labels = {
+                    1: "(1/5 Sao - Rất tệ)",
+                    2: "(2/5 Sao - Tệ)",
+                    3: "(3/5 Sao - Bình thường)",
+                    4: "(4/5 Sao - Tốt)",
+                    5: "(5/5 Sao - Rất tốt)"
+                };
+
+                stars.forEach(star => {
+                    star.addEventListener("click", function () {
+                        const val = Number.parseInt(this.getAttribute("data-value"), 10);
+                        ratingInput.value = val;
+                        if (ratingLabel) ratingLabel.textContent = labels[val] || `(${val}/5 Sao)`;
+                        updateStarsUI(val);
+                    });
+
+                    star.addEventListener("mouseover", function () {
+                        const val = Number.parseInt(this.getAttribute("data-value"), 10);
+                        updateStarsUI(val);
+                    });
+
+                    star.addEventListener("mouseout", function () {
+                        const currentVal = Number.parseInt(ratingInput.value, 10) || 5;
+                        updateStarsUI(currentVal);
+                    });
+                });
+
+                function updateStarsUI(val) {
+                    stars.forEach(s => {
+                        const starVal = Number.parseInt(s.getAttribute("data-value"), 10);
+                        if (starVal <= val) {
+                            s.classList.remove("far");
+                            s.classList.add("fas");
+                        } else {
+                            s.classList.remove("fas");
+                            s.classList.add("far");
+                        }
+                    });
+                }
+            }
+
+            async function loadReviews(productId) {
+                const reviewsLoading = document.getElementById("reviews-loading");
+                const reviewsList = document.getElementById("reviews-list");
+                const avgScoreEl = document.getElementById("avg-rating-score");
+                const avgStarsEl = document.getElementById("avg-rating-stars");
+                const totalCountEl = document.getElementById("total-reviews-count");
+
+                if (!reviewsList || productId <= 0) return;
+
+                try {
+                    reviewsLoading?.classList.remove("d-none");
+
+                    const response = await fetch(`/api/reviews/product/${productId}`);
+                    if (!response.ok) throw new Error("Không thể tải danh sách bình luận.");
+
+                    const data = await response.json();
+
+                    const avg = data.averageRating || 0;
+                    const total = data.totalReviews || 0;
+                    const reviews = data.reviews || [];
+
+                    if (avgScoreEl) avgScoreEl.textContent = avg.toFixed(1);
+                    if (totalCountEl) totalCountEl.textContent = `${total} bình luận`;
+
+                    if (avgStarsEl) {
+                        avgStarsEl.innerHTML = renderStarsHtml(avg);
+                    }
+
+                    if (reviews.length === 0) {
+                        reviewsList.innerHTML = `
+                            <div class="text-center py-4 text-muted bg-light rounded">
+                                <i class="far fa-comment-dots fs-1 d-block mb-2"></i>
+                                Chưa có bình luận nào cho sản phẩm này. Hãy là người đầu tiên bình luận!
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    let html = "";
+                    reviews.forEach(r => {
+                        const formattedDate = new Date(r.createdAt).toLocaleString("vi-VN", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit"
+                        });
+
+                        const avatarSrc = r.userAvatar || "/images/user.svg";
+                        const isOwner = currentUserId && r.userId === currentUserId;
+
+                        html += `
+                            <div class="card mb-3 border-0 shadow-sm">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div class="d-flex align-items-center">
+                                            <img src="${avatarSrc}" alt="${escapeHtml(r.userName)}" class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover; border: 1px solid #ddd;" onerror="this.src='/images/user.svg'">
+                                            <div>
+                                                <h6 class="mb-0 fw-bold">${escapeHtml(r.userName)}</h6>
+                                                <small class="text-muted">${formattedDate}</small>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <span class="text-warning me-2">${renderStarsHtml(r.rating)}</span>
+                                            ${isOwner ? `<button class="btn btn-sm btn-outline-danger border-0" onclick="deleteReview(${r.reviewId})" title="Xóa bình luận"><i class="fas fa-trash-alt"></i></button>` : ''}
+                                        </div>
+                                    </div>
+                                    <p class="card-text text-dark mb-0 ps-5">${escapeHtml(r.comment)}</p>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    reviewsList.innerHTML = html;
+                } catch (error) {
+                    console.error("Error loading reviews:", error);
+                    reviewsList.innerHTML = `
+                        <div class="alert alert-danger text-center">
+                            Không thể tải danh sách bình luận.
+                        </div>
+                    `;
+                } finally {
+                    reviewsLoading?.classList.add("d-none");
+                }
+            }
+
+            async function handleReviewSubmit(e) {
+                e.preventDefault();
+
+                const rating = Number.parseInt(document.getElementById("review-rating")?.value || "5", 10);
+                const commentInput = document.getElementById("review-comment");
+                const comment = commentInput?.value?.trim() || "";
+                const msgBox = document.getElementById("review-form-message");
+                const btnSubmit = document.getElementById("btn-submit-review");
+
+                if (!comment) {
+                    showReviewMessage("Vui lòng nhập nội dung bình luận.", "danger");
+                    return;
+                }
+
+                btnSubmit.disabled = true;
+                btnSubmit.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Đang gửi...`;
+
+                try {
+                    const response = await fetch("/api/reviews", {
+                        method: "POST",
+                        credentials: "include",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Accept": "application/json"
+                        },
+                        body: JSON.stringify({
+                            productId: currentProductId || productIdFromRoute,
+                            rating: rating,
+                            comment: comment
+                        })
+                    });
+
+                    if (response.status === 401) {
+                        const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+                        window.location.href = `/account/login?returnUrl=${returnUrl}`;
+                        return;
+                    }
+
+                    const result = await readJsonResponse(response);
+
+                    if (!response.ok) {
+                        throw new Error(result?.message || result?.title || "Gửi bình luận thất bại.");
+                    }
+
+                    showReviewMessage(result?.message || "Đã đăng bình luận thành công!", "success");
+                    commentInput.value = "";
+                    loadReviews(currentProductId || productIdFromRoute);
+                } catch (err) {
+                    showReviewMessage(err?.message || "Lỗi kết nối khi gửi bình luận.", "danger");
+                } finally {
+                    btnSubmit.disabled = false;
+                    btnSubmit.innerHTML = `<i class="fas fa-paper-plane me-2"></i>Gửi bình luận`;
+                }
+            }
+
+            async function deleteReview(reviewId) {
+                if (!confirm("Bạn có chắc chắn muốn xóa bình luận này không?")) return;
+
+                try {
+                    const response = await fetch(`/api/reviews/${reviewId}`, {
+                        method: "DELETE",
+                        credentials: "include"
+                    });
+
+                    const result = await readJsonResponse(response);
+                    if (!response.ok) {
+                        alert(result?.message || "Không thể xóa bình luận.");
+                        return;
+                    }
+
+                    loadReviews(currentProductId || productIdFromRoute);
+                } catch (err) {
+                    console.error("Delete review error:", err);
+                    alert("Có lỗi xảy ra khi xóa bình luận.");
+                }
+            }
+
+            function showReviewMessage(msg, type) {
+                const box = document.getElementById("review-form-message");
+                if (!box) return;
+                box.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show py-2 mb-0" role="alert">${escapeHtml(msg)}<button type="button" class="btn-close py-2" data-bs-dismiss="alert"></button></div>`;
+            }
+
+            function renderStarsHtml(rating) {
+                let stars = "";
+                const rounded = Math.round(rating);
+                for (let i = 1; i <= 5; i++) {
+                    if (i <= rounded) {
+                        stars += `<i class="fas fa-star text-warning me-1"></i>`;
+                    } else {
+                        stars += `<i class="far fa-star text-muted me-1"></i>`;
+                    }
+                }
+                return stars;
+            }
+
+            function escapeHtml(str) {
+                if (!str) return "";
+                return str
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
             }
         </script>
     }

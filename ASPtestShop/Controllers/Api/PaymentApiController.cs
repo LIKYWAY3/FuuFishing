@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using ASPtestShop.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -81,5 +81,33 @@ namespace ASPtestShop.Controllers.Api
                 Message = "Xác nhận thanh toán COD thành công"
             });
         }
+
+        //===============================CONFIRM ONLINE PAYMENT======================================
+        // POST: api/payments/online/confirm
+        [AllowAnonymous]
+        [HttpPost("online/confirm")]
+        public async Task<IActionResult> ConfirmOnlinePayment([FromBody] ConfirmOnlinePaymentRequestDto dto)
+        {
+            if (string.IsNullOrEmpty(dto.OrderCode))
+            {
+                return BadRequest(new { Success = false, Message = "Mã đơn hàng không hợp lệ" });
+            }
+
+            var result = await _paymentService.ConfirmOnlinePaymentAsync(dto.OrderCode, dto.PaymentMethod, dto.TransactionCode);
+
+            if (!result)
+            {
+                return BadRequest(new { Success = false, Message = "Xác nhận thanh toán thất bại" });
+            }
+
+            return Ok(new { Success = true, Message = "Thanh toán thành công!" });
+        }
+    }
+
+    public class ConfirmOnlinePaymentRequestDto
+    {
+        public string OrderCode { get; set; } = string.Empty;
+        public string PaymentMethod { get; set; } = string.Empty;
+        public string? TransactionCode { get; set; }
     }
 }

@@ -11,5 +11,7 @@ namespace ASPtestShop.Services.Interfaces
 
         Task<OrderHistoryDto?> GetOrderDetailAsync(string userId, int orderId);
 
+        Task<(bool Success, string Message)> CancelOrderAsync(string userId, int orderId, string? reason);
+
     }
 }

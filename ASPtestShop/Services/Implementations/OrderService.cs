@@ -12,13 +12,16 @@ namespace ASPtestShop.Services.Implementations
     {
         private readonly AppDbContext _context;
         private readonly IPaymentProviderFactory _paymentProviderFactory;
+        private readonly ICouponService _couponService;
 
         public OrderService(
             AppDbContext context,
-            IPaymentProviderFactory paymentProviderFactory)
+            IPaymentProviderFactory paymentProviderFactory,
+            ICouponService couponService)
         {
             _context = context;
             _paymentProviderFactory = paymentProviderFactory;
+            _couponService = couponService;
         }
 
         public async Task<CheckoutResultDto> CheckoutAsync(
@@ -113,9 +116,33 @@ namespace ASPtestShop.Services.Implementations
             );
 
             var discountAmount = 0m;
+            int? appliedCouponId = null;
+
+            if (!string.IsNullOrWhiteSpace(checkoutDto.CouponCode))
+            {
+                var couponResult = await _couponService.ApplyCouponAsync(new Models.DTO.Coupon.ApplyCouponRequestDto
+                {
+                    Code = checkoutDto.CouponCode,
+                    TotalAmount = totalAmount
+                });
+
+                if (couponResult.Success)
+                {
+                    discountAmount = couponResult.DiscountAmount;
+                    appliedCouponId = couponResult.CouponId;
+                }
+                else
+                {
+                    return new CheckoutResultDto
+                    {
+                        Success = false,
+                        Message = couponResult.Message
+                    };
+                }
+            }
+
             var shippingFee = 0m;
-            var finalAmount =
-                totalAmount - discountAmount + shippingFee;
+            var finalAmount = Math.Max(totalAmount - discountAmount + shippingFee, 0);
 
             await using var transaction =
                 await _context.Database.BeginTransactionAsync();
@@ -129,6 +156,7 @@ namespace ASPtestShop.Services.Implementations
                         + DateTime.Now.ToString("yyyyMMddHHmmssfff"),
 
                     UserId = userId,
+                    CouponId = appliedCouponId,
 
                     TotalAmount = totalAmount,
                     DiscountAmount = discountAmount,
@@ -242,7 +270,9 @@ namespace ASPtestShop.Services.Implementations
                     FinalAmount = order.FinalAmount,
                     OrderStatus = order.OrderStatus,
                     PaymentStatus = order.PaymentStatus,
-                    PaymentMethod = order.PaymentMethod
+                    PaymentMethod = order.PaymentMethod,
+                    PaymentUrl = paymentResult.PaymentUrl,
+                    RequiresRedirect = paymentResult.RequiresRedirect
                 };
             }
             catch
@@ -273,6 +303,7 @@ namespace ASPtestShop.Services.Implementations
                     ReceiverPhone = o.ReceiverPhone,
                     ShippingAddress = o.ShippingAddress,
                     Note = o.Note,
+                    CancelReason = o.CancelReason,
                     CreatedAt = o.CreatedAt,
 
                     Items = o.OrderItems
@@ -327,6 +358,7 @@ namespace ASPtestShop.Services.Implementations
                     ReceiverPhone = o.ReceiverPhone,
                     ShippingAddress = o.ShippingAddress,
                     Note = o.Note,
+                    CancelReason = o.CancelReason,
                     CreatedAt = o.CreatedAt,
 
                     Items = o.OrderItems
@@ -356,6 +388,55 @@ namespace ASPtestShop.Services.Implementations
                 .FirstOrDefaultAsync();
 
             return order;
+        }
+
+        // ==================== UC-15: HỦY ĐƠN HÀNG ====================
+        public async Task<(bool Success, string Message)> CancelOrderAsync(string userId, int orderId, string? reason)
+        {
+            var order = await _context.Orders
+                .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.Product)
+                .FirstOrDefaultAsync(o => o.OrderId == orderId && o.UserId == userId);
+
+            if (order == null)
+            {
+                return (false, "Đơn hàng không tồn tại.");
+            }
+
+            // EF-15.1: Đơn đã qua giai đoạn xử lý
+            if (!string.Equals(order.OrderStatus, "Pending", StringComparison.OrdinalIgnoreCase))
+            {
+                return (false, "Đơn hàng đang xử lý hoặc vận chuyển, không thể tự hủy. Vui lòng liên hệ CSKH.");
+            }
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                // Bước 2: Cập nhật OrderStatus = "Cancelled"
+                order.OrderStatus = "Cancelled";
+                order.CancelReason = reason;
+                order.UpdatedAt = DateTime.UtcNow;
+
+                // Bước 3: Duyệt danh sách OrderItems và cộng trả lại tồn kho Product.StockQuantity += Quantity
+                foreach (var item in order.OrderItems)
+                {
+                    if (item.Product != null)
+                    {
+                        item.Product.StockQuantity += item.Quantity;
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                // Bước 4: Thông báo thành công
+                return (true, "Đã hủy đơn hàng thành công.");
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return (false, "Có lỗi xảy ra khi xử lý hủy đơn hàng: " + ex.Message);
+            }
         }
     }
 }

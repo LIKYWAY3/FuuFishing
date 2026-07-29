@@ -1,0 +1,478 @@
+@{
+    ViewData["Title"] = "Quản lý người dùng";
+    Layout = "_AdminLayout";
+}
+
+<div class="container-fluid mt-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-people me-2"></i>Quản lý tài khoản người dùng</h2>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
+            + Thêm tài khoản mới
+        </button>
+    </div>
+
+    <div id="alert-box"></div>
+
+    <!-- BỘ LỌC TÌM KIẾM -->
+    <div class="card mb-4 border-0 shadow-sm">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <select id="role-filter" class="form-select">
+                        <option value="">-- Tất cả vai trò --</option>
+                        <option value="Admin">Admin (Quản trị viên)</option>
+                        <option value="Customer">Customer (Khách hàng)</option>
+                    </select>
+                </div>
+                <div class="col-md-7">
+                    <input type="text" id="search-input" class="form-control" placeholder="Tìm theo Họ tên, Email, Số điện thoại...">
+                </div>
+                <div class="col-md-2">
+                    <button id="btn-search" class="btn btn-primary w-100">Tìm kiếm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BẢNG DANH SÁCH USER -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">Người dùng</th>
+                            <th>Email</th>
+                            <th>Số điện thoại</th>
+                            <th>Địa chỉ</th>
+                            <th>Vai trò</th>
+                            <th>Trạng thái</th>
+                            <th class="text-end pe-3">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-tbody">
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">
+                                <div class="spinner-border spinner-border-sm text-primary me-2"></div> Đang tải danh sách tài khoản...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL THÊM USER -->
+<div class="modal fade" id="createUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="form-create-user">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Thêm tài khoản người dùng</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Họ và tên <span class="text-danger">*</span></label>
+                        <input type="text" id="create-fullname" class="form-control" placeholder="Nguyễn Văn A" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Email <span class="text-danger">*</span></label>
+                        <input type="email" id="create-email" class="form-control" placeholder="user@gmail.com" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Mật khẩu <span class="text-danger">*</span></label>
+                        <input type="password" id="create-password" class="form-control" placeholder="Tối thiểu 6 ký tự" required minlength="6">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Số điện thoại</label>
+                        <input type="text" id="create-phone" class="form-control" placeholder="0901234567">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Địa chỉ</label>
+                        <input type="text" id="create-address" class="form-control" placeholder="Địa chỉ giao hàng">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Vai trò / Quyền hạn</label>
+                        <select id="create-role" class="form-select">
+                            <option value="Customer">Customer (Khách hàng)</option>
+                            <option value="Admin">Admin (Quản trị viên)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Tạo tài khoản</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL SỬA USER -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="form-edit-user">
+                <input type="hidden" id="edit-userId" />
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Cập nhật thông tin tài khoản</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Họ và tên <span class="text-danger">*</span></label>
+                        <input type="text" id="edit-fullname" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Email <span class="text-danger">*</span></label>
+                        <input type="email" id="edit-email" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Số điện thoại</label>
+                        <input type="text" id="edit-phone" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Địa chỉ</label>
+                        <input type="text" id="edit-address" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Vai trò</label>
+                        <select id="edit-role" class="form-select">
+                            <option value="Customer">Customer (Khách hàng)</option>
+                            <option value="Admin">Admin (Quản trị viên)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL ĐỔI MẬT KHẨU USER -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <form id="form-reset-password">
+                <input type="hidden" id="reset-userId" />
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Đặt lại mật khẩu</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted mb-2">Tài khoản: <strong id="reset-user-email"></strong></p>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Mật khẩu mới <span class="text-danger">*</span></label>
+                        <input type="password" id="reset-newpassword" class="form-control" placeholder="Ít nhất 6 ký tự" required minlength="6">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-warning btn-sm">Cập nhật mật khẩu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let allUsers = [];
+
+        document.addEventListener("DOMContentLoaded", function () {
+            loadUsers();
+
+            document.getElementById("btn-search")?.addEventListener("click", loadUsers);
+            document.getElementById("role-filter")?.addEventListener("change", loadUsers);
+            document.getElementById("search-input")?.addEventListener("keypress", function (e) {
+                if (e.key === "Enter") loadUsers();
+            });
+
+            // FORM THÊM USER
+            document.getElementById("form-create-user")?.addEventListener("submit", handleCreateUser);
+            // FORM SỬA USER
+            document.getElementById("form-edit-user")?.addEventListener("submit", handleEditUser);
+            // FORM ĐỔI MẬT KHẨU
+            document.getElementById("form-reset-password")?.addEventListener("submit", handleResetPassword);
+        });
+
+        async function loadUsers() {
+            const tbody = document.getElementById("users-tbody");
+            const search = document.getElementById("search-input")?.value?.trim() || "";
+            const role = document.getElementById("role-filter")?.value || "";
+
+            try {
+                let url = `/api/admin/users?search=${encodeURIComponent(search)}&role=${encodeURIComponent(role)}`;
+                const response = await fetch(url, { credentials: "include" });
+                if (!response.ok) throw new Error("Không thể tải danh sách tài khoản.");
+
+                allUsers = await response.json();
+                renderUsersTable(allUsers);
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center text-danger py-4">
+                            Lỗi khi tải danh sách người dùng.
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        function renderUsersTable(users) {
+            const tbody = document.getElementById("users-tbody");
+
+            if (!users || users.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">
+                            Không tìm thấy tài khoản nào.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            let html = "";
+            users.forEach(u => {
+                const isAdmin = u.roles && u.roles.includes("Admin");
+                const roleBadge = isAdmin
+                    ? `<span class="badge bg-danger">Admin</span>`
+                    : `<span class="badge bg-secondary">Customer</span>`;
+
+                const statusBadge = u.isLockedOut
+                    ? `<span class="badge bg-danger"><i class="bi bi-lock-fill me-1"></i>Đã khóa</span>`
+                    : `<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Hoạt động</span>`;
+
+                const avatarSrc = u.avatarUrl || "/images/user.svg";
+                const displayName = u.fullName || u.userName || "N/A";
+
+                html += `
+                    <tr>
+                        <td class="ps-3">
+                            <div class="d-flex align-items-center">
+                                <img src="${avatarSrc}" alt="${escapeHtml(displayName)}" class="rounded-circle me-2" style="width: 36px; height: 36px; object-fit: cover; border: 1px solid #ddd;" onerror="this.src='/images/user.svg'">
+                                <div>
+                                    <div class="fw-bold">${escapeHtml(displayName)}</div>
+                                    <small class="text-muted">ID: ${u.id.substring(0, 8)}...</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>${escapeHtml(u.email)}</td>
+                        <td>${escapeHtml(u.phoneNumber || '---')}</td>
+                        <td><div class="text-truncate" style="max-width: 150px;">${escapeHtml(u.address || '---')}</div></td>
+                        <td>${roleBadge}</td>
+                        <td>${statusBadge}</td>
+                        <td class="text-end pe-3">
+                            <button class="btn btn-sm btn-outline-primary me-1" onclick="openEditModal('${u.id}')" title="Sửa thông tin">
+                                Sửa
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning me-1" onclick="openResetPasswordModal('${u.id}', '${escapeHtml(u.email)}')" title="Đổi mật khẩu">
+                                Đổi MK
+                            </button>
+                            <button class="btn btn-sm ${u.isLockedOut ? 'btn-outline-success' : 'btn-outline-secondary'} me-1" onclick="toggleLock('${u.id}')" title="${u.isLockedOut ? 'Mở khóa' : 'Khóa'}">
+                                ${u.isLockedOut ? 'Mở khóa' : 'Khóa'}
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${u.id}', '${escapeHtml(u.email)}')" title="Xóa">
+                                Xóa
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        async function handleCreateUser(e) {
+            e.preventDefault();
+
+            const dto = {
+                fullName: document.getElementById("create-fullname").value.trim(),
+                email: document.getElementById("create-email").value.trim(),
+                password: document.getElementById("create-password").value,
+                phoneNumber: document.getElementById("create-phone").value.trim(),
+                address: document.getElementById("create-address").value.trim(),
+                role: document.getElementById("create-role").value
+            };
+
+            try {
+                const response = await fetch("/api/admin/users", {
+                    method: "POST",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(dto)
+                });
+
+                const result = await response.json();
+                if (!response.ok) {
+                    alert(result?.message || "Tạo tài khoản thất bại.");
+                    return;
+                }
+
+                bootstrap.Modal.getInstance(document.getElementById("createUserModal"))?.hide();
+                document.getElementById("form-create-user").reset();
+                showAlert(result?.message || "Tạo tài khoản thành công!", "success");
+                loadUsers();
+            } catch (err) {
+                console.error(err);
+                alert("Lỗi kết nối khi tạo tài khoản.");
+            }
+        }
+
+        function openEditModal(userId) {
+            const u = allUsers.find(x => x.id === userId);
+            if (!u) return;
+
+            document.getElementById("edit-userId").value = u.id;
+            document.getElementById("edit-fullname").value = u.fullName || "";
+            document.getElementById("edit-email").value = u.email || "";
+            document.getElementById("edit-phone").value = u.phoneNumber || "";
+            document.getElementById("edit-address").value = u.address || "";
+            document.getElementById("edit-role").value = (u.roles && u.roles.includes("Admin")) ? "Admin" : "Customer";
+
+            new bootstrap.Modal(document.getElementById("editUserModal")).show();
+        }
+
+        async function handleEditUser(e) {
+            e.preventDefault();
+
+            const userId = document.getElementById("edit-userId").value;
+            const dto = {
+                fullName: document.getElementById("edit-fullname").value.trim(),
+                email: document.getElementById("edit-email").value.trim(),
+                phoneNumber: document.getElementById("edit-phone").value.trim(),
+                address: document.getElementById("edit-address").value.trim(),
+                role: document.getElementById("edit-role").value
+            };
+
+            try {
+                const response = await fetch(`/api/admin/users/${userId}`, {
+                    method: "PUT",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(dto)
+                });
+
+                const result = await response.json();
+                if (!response.ok) {
+                    alert(result?.message || "Cập nhật thất bại.");
+                    return;
+                }
+
+                bootstrap.Modal.getInstance(document.getElementById("editUserModal"))?.hide();
+                showAlert(result?.message || "Cập nhật tài khoản thành công!", "success");
+                loadUsers();
+            } catch (err) {
+                console.error(err);
+                alert("Lỗi kết nối khi cập nhật tài khoản.");
+            }
+        }
+
+        function openResetPasswordModal(userId, email) {
+            document.getElementById("reset-userId").value = userId;
+            document.getElementById("reset-user-email").textContent = email;
+            document.getElementById("reset-newpassword").value = "";
+            new bootstrap.Modal(document.getElementById("resetPasswordModal")).show();
+        }
+
+        async function handleResetPassword(e) {
+            e.preventDefault();
+
+            const userId = document.getElementById("reset-userId").value;
+            const newPassword = document.getElementById("reset-newpassword").value;
+
+            try {
+                const response = await fetch(`/api/admin/users/${userId}/reset-password`, {
+                    method: "PUT",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ newPassword: newPassword })
+                });
+
+                const result = await response.json();
+                if (!response.ok) {
+                    alert(result?.message || "Đặt lại mật khẩu thất bại.");
+                    return;
+                }
+
+                bootstrap.Modal.getInstance(document.getElementById("resetPasswordModal"))?.hide();
+                showAlert(result?.message || "Đặt lại mật khẩu thành công!", "success");
+            } catch (err) {
+                console.error(err);
+                alert("Lỗi khi đặt lại mật khẩu.");
+            }
+        }
+
+        async function toggleLock(userId) {
+            try {
+                const response = await fetch(`/api/admin/users/${userId}/lock`, {
+                    method: "PUT",
+                    credentials: "include"
+                });
+
+                const result = await response.json();
+                if (!response.ok) {
+                    showAlert(result?.message || "Thao tác thất bại.", "danger");
+                    return;
+                }
+
+                showAlert(result?.message || "Thay đổi trạng thái tài khoản thành công!", "success");
+                loadUsers();
+            } catch (err) {
+                console.error(err);
+                showAlert("Có lỗi xảy ra khi khóa/mở khóa tài khoản.", "danger");
+            }
+        }
+
+        async function deleteUser(userId, email) {
+            if (!confirm(`Bạn có chắc chắn muốn xóa tài khoản ${email} không? Hành động này không thể hoàn tác!`)) return;
+
+            try {
+                const response = await fetch(`/api/admin/users/${userId}`, {
+                    method: "DELETE",
+                    credentials: "include"
+                });
+
+                const result = await response.json();
+                if (!response.ok) {
+                    showAlert(result?.message || "Xóa thất bại.", "danger");
+                    return;
+                }
+
+                showAlert(result?.message || "Đã xóa tài khoản thành công!", "success");
+                loadUsers();
+            } catch (err) {
+                console.error(err);
+                showAlert("Có lỗi xảy ra khi xóa tài khoản.", "danger");
+            }
+        }
+
+        function showAlert(msg, type) {
+            const box = document.getElementById("alert-box");
+            if (!box) return;
+            box.innerHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${escapeHtml(msg)}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+        }
+
+        function escapeHtml(str) {
+            if (!str) return "";
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+}
